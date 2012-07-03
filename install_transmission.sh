@@ -2,7 +2,7 @@
 #===================================================================================
 #         FILE: install_transmission.sh
 # 
-#        USAGE: ./install_transmission.sh [-u user_name] [-r]
+#        USAGE: ./install_transmission.sh [-u user_name] [-p] [-r]
 # 
 #  DESCRIPTION: Install transmission on Seagate GoFlex Home
 # 
@@ -14,8 +14,9 @@
 #               can be manually downloaded and place it in the same folder.
 #               Run the script after gaining root access with command "sudo -E -s) 
 #       AUTHOR: John A.K. (Jak's Lab - http://kjohna.wordpress.com/)
-#      VERSION: 0.9
+#      VERSION: 0.91
 #      CREATED: 30-June-2012
+#     MODIFIED: 03-July-2012
 #
 # This software is provided by the copyright holders and contributors "as is" and 
 # any express or implied warranties, including, but not limited to, the implied 
@@ -197,7 +198,6 @@ configure_daemon() {
         exit 1
     fi
 
-#    temp=$(sed -i "s/^.*download-dir.*/    \"download-dir\": \"\\\\\/home\\\\\/.config\\\\\/transmission-daemon\\\\\/Downloads\",/g" $SETTINGSPATH/settings.json 2>&1)
     temp=$(sed -i "s/^.*download-dir.*/    \"download-dir\": \"$JSONDLPATH\",/g" $SETTINGSPATH/settings.json 2>&1)
     if [ $(echo $temp | grep -ic "sed:") -eq 1 ]; then
         echo "[Error -18] Cannot edit settings file"
@@ -294,49 +294,65 @@ uninstall_daemon() {
 # Get options from command line
 if [ $# -eq 0 ]; then
     echo "No option to execute"
-    echo "Usage: $0 [-u user_name] [-r]"
+    echo "Usage: $0 [-u user_name] [-p] [-r]"
     exit 1
 fi
 
-while getopts u:rh opt
+while getopts u:rhp opt
 do
     case "$opt" in
         u)    DAEMONUSER="$OPTARG"
+              if [ "$DAEMONUSER" = "" ]; then
+                  echo "Username cannot be empty"
+                  echo "Usage: $0 [-u user_name] [-p]"
+                  exit 1
+              fi
+                  
               DLPATH="/home/$DAEMONUSER/GoFlex Home Public/Torrent Downloads"
               WTPATH="$DLPATH/Torrents"
-              
-              echo "Installing for Seagate GoFlexHome user \"$DAEMONUSER\""
-              
-              # Script starts installing transmission client
-              # Download transmission client
-              get_transmission
-              
-              # Decompress the package
-              decompress_pkg
-              
-              # Install transmission client
-              install_daemon
-              
-              # Configure transmission daemon
-              configure_daemon
-
-              # Start transmission daemon
-              start_daemon
-              sleep 0.5
               ;;
+        p)    if [ "$DAEMONUSER" = "" ]; then
+                  echo "User name not set"
+                  echo "Usage: $0 [-u user_name] [-p]"
+                  exit 1
+              fi
+              
+              DLPATH="/home/$DAEMONUSER/GoFlex Home Personal/Torrent Downloads"
+              WTPATH="$DLPATH/Torrents"
+              ;;  
         r)    echo "Uninstalling transmission client from Seagate GoFlex Home"
               
               # Uninstall transmission client
               uninstall_daemon
               ;;
-        h)    echo "Usage: $0 [-u user_name] [-r]"
+        h)    echo "Usage: $0 [-u user_name] [-p] [-r]"
               exit 0
               ;;
         \?)   echo "Illegal option"
-              echo "Usage: $0 [-u user_name] [-r]"
+              echo "Usage: $0 [-u user_name] [-p] [-r]"
               exit 1
               ;;
      esac
 done
 
+echo "Installing for Seagate GoFlexHome user \"$DAEMONUSER\""
+
+# Script starts installing transmission client
+# Download transmission client
+get_transmission
+              
+# Decompress the package
+decompress_pkg
+              
+# Install transmission client
+install_daemon
+              
+# Configure transmission daemon
+configure_daemon
+
+# Start transmission daemon
+start_daemon
+sleep 0.5
+
 exit 0
+
