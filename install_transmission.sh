@@ -14,9 +14,9 @@
 #               can be manually downloaded and place it in the same folder.
 #               Run the script after gaining root access with command "sudo -E -s) 
 #       AUTHOR: John A.K. (Jak's Lab - http://kjohna.wordpress.com/)
-#      VERSION: 0.91
+#      VERSION: 0.92
 #      CREATED: 30-June-2012
-#     MODIFIED: 03-July-2012
+#     MODIFIED: 04-July-2012
 #
 # This software is provided by the copyright holders and contributors "as is" and 
 # any express or implied warranties, including, but not limited to, the implied 
@@ -324,6 +324,7 @@ do
               
               # Uninstall transmission client
               uninstall_daemon
+              exit 0
               ;;
         h)    echo "Usage: $0 [-u user_name] [-p] [-r]"
               exit 0
