@@ -14,9 +14,9 @@
 #               can be manually downloaded and place it in the same folder.
 #               Run the script after gaining root access with command "sudo -E -s) 
 #       AUTHOR: John A.K. (Jak's Lab - http://kjohna.wordpress.com/)
-#      VERSION: 0.92
+#      VERSION: 0.93
 #      CREATED: 30-June-2012
-#     MODIFIED: 04-July-2012
+#     MODIFIED: 17-July-2012
 #
 # This software is provided by the copyright holders and contributors "as is" and 
 # any express or implied warranties, including, but not limited to, the implied 
@@ -46,11 +46,11 @@ get_transmission() {
     if [ $(ls | grep -ic "transmission-1_92_ARM_Stora_tar.gz") -eq 0 ]; then
         temp=$(wget -nv http://www.openstora.com/files/albums/uploads/transmission-1_92_ARM_Stora_tar.gz 2>&1)
         if [ $(echo $temp | grep -ic "ERROR 404") -eq 1 ]; then
-            echo "[Error -1] Failed to download transmission client. Check internet connection."
+            echo "[Error -001] Failed to download transmission client. Check internet connection."
             uninstall_daemon
             exit 1
         elif [ $(echo $temp | grep -ic "Command not found") -eq 1 ]; then
-            echo "[Error -2] Cannot find wget tool. Manually download transmission client from the link:"
+            echo "[Error -002] Cannot find wget tool. Manually download transmission client from the link:"
             echo "        http://www.openstora.com/files/albums/uploads/transmission-1_92_ARM_Stora_tar.gz"
             uninstall_daemon
             exit 1
@@ -66,7 +66,7 @@ get_transmission() {
 decompress_pkg() {
     temp=$(tar -xzvf transmission-1_92_ARM_Stora_tar.gz 2>&1)
     if [ $(ls | grep -xc "transmission") -eq 0 ]; then
-        echo "[Error -3] File may be corrupted or permission error"
+        echo "[Error -101] File may be corrupted or permission error"
         uninstall_daemon
         exit 1
     else
@@ -79,49 +79,49 @@ decompress_pkg() {
 install_daemon() {
     temp=$(mkdir -p $BINPATH 2>&1)
     if [ $(echo $temp | grep -ic "Permission denied") -eq 1 ]; then
-        echo "[Error -4] Cannot create folder"
+        echo "[Error -201] Cannot create folder"
         uninstall_daemon
         exit 1
     fi
     
     temp=$(cp transmission/transmission-daemon $BINPATH 2>&1)
     if [ $(echo $temp | grep -ic "Cannot open: No such file or directory") -eq 1 ]; then
-        echo "[Error -5] Cannot copy file"
+        echo "[Error -202] Cannot copy file"
         uninstall_daemon
         exit 1
     fi
 
     temp=$(chmod 0755 $BINPATH/transmission-daemon 2>&1)
     if [ $(echo $temp | grep -ic "chmod:") -eq 1 ]; then
-        echo "[Error -6] Cannot change permission"
+        echo "[Error -203] Cannot change permission"
         uninstall_daemon
         exit 1
     fi
     
     temp=$(mkdir -p $WEBPATH 2>&1)
     if [ $(echo $temp | grep -ic "Permission denied") -eq 1 ]; then
-        echo "[Error -7] Cannot create folder"
+        echo "[Error -204] Cannot create folder"
         uninstall_daemon
         exit 1
     fi
     
     temp=$(cp -r transmission/web $WEBPATH 2>&1)
     if [ $(echo $temp | grep -ic "Permission denied") -eq 1 ]; then
-        echo "[Error -8] Cannot copy folder"
+        echo "[Error -205] Cannot copy folder"
         uninstall_daemon
         exit 1
     fi
 
     temp=$(mkdir -p $SCRIPTPATH 2>&1)
     if [ $(echo $temp | grep -ic "Permission denied") -eq 1 ]; then
-        echo "[Error -9] Cannot create folder"
+        echo "[Error -206] Cannot create folder"
         uninstall_daemon
         exit 1
     fi
     
     temp=$(cp transmission/init.d/transmission-daemon $SCRIPTPATH/transmissiond 2>&1)
     if [ $(echo $temp | grep -ic "Permission denied") -eq 1 ]; then
-        echo "[Error -10] Cannot copy file"
+        echo "[Error -207] Cannot copy file"
         uninstall_daemon
         exit 1
     fi
@@ -134,7 +134,7 @@ install_daemon() {
 start_daemon() {
     temp=$($SCRIPTPATH/transmissiond start 2>&1)
     if [ $(echo $temp | grep -ic "[ OK ]") -eq 0 ]; then
-        echo "[Error -11] Could not start transmission daemon"
+        echo "[Error -301] Could not start transmission daemon"
         uninstall_daemon
         exit 1
     else
@@ -147,7 +147,7 @@ start_daemon() {
 stop_daemon() {
     temp=$($SCRIPTPATH/transmissiond stop 2>&1)
     if [ $(echo $temp | grep -ic "[ OK ]") -eq 0 ]; then
-        echo "[Error -12] Could not stop transmission daemon"
+        echo "[Error -302] Could not stop transmission daemon"
         uninstall_daemon
         exit 1
     else
@@ -160,20 +160,27 @@ stop_daemon() {
 configure_daemon() {
     temp=$(mkdir -p $SETTINGSPATH 2>&1)
     if [ $(echo $temp | grep -ic "Permission denied") -eq 1 ]; then
-        echo "[Error -13] Cannot create settings folder"
+        echo "[Error -303] Cannot create settings folder"
         exit 1
     fi
 
     temp=$(chown -R $DAEMONUSER:$DAEMONUSER $SETTINGSPATH 2>&1)
     if [ $(echo $temp | grep -ic "chown:") -eq 1 ]; then
-        echo "[Error -14] Cannot change permission"
+        echo "[Error -304] Cannot change permission"
+        uninstall_daemon
+        exit 1
+    fi
+    
+    temp=$(sed -i -e "s/^# chkconfig:.*/# chkconfig: - 99 30/g" $SCRIPTPATH/transmissiond 2>&1)
+    if [ $(echo $temp | grep -ic "sed:") -eq 1 ]; then
+        echo "[Error -305] Cannot edit settings file"
         uninstall_daemon
         exit 1
     fi
     
     temp=$(sed -i -e "s/^DAEMON_USER.*/DAEMON_USER="\"$DAEMONUSER\""/g" $SCRIPTPATH/transmissiond 2>&1)
     if [ $(echo $temp | grep -ic "sed:") -eq 1 ]; then
-        echo "[Error -15] Cannot edit settings file"
+        echo "[Error -306] Cannot edit settings file"
         uninstall_daemon
         exit 1
     fi
@@ -186,49 +193,49 @@ configure_daemon() {
 
     temp=$(mkdir -p "$DLPATH" 2>&1)
     if [ $(echo $temp | grep -ic "Permission denied") -eq 1 ]; then
-        echo "[Error -16] Cannot create downloads folder"
+        echo "[Error -307] Cannot create downloads folder"
         uninstall_daemon
         exit 1
     fi
 
     temp=$(ln -s "$DLPATH/" "$SETTINGSPATH/Downloads" 2>&1)
     if [ $(echo $temp | grep -ic "ln:") -eq 1 ]; then
-        echo "[Error -17] Cannot create downloads folder"
+        echo "[Error -308] Cannot create downloads folder"
         uninstall_daemon
         exit 1
     fi
 
     temp=$(sed -i "s/^.*download-dir.*/    \"download-dir\": \"$JSONDLPATH\",/g" $SETTINGSPATH/settings.json 2>&1)
     if [ $(echo $temp | grep -ic "sed:") -eq 1 ]; then
-        echo "[Error -18] Cannot edit settings file"
+        echo "[Error -309] Cannot edit settings file"
         uninstall_daemon
         exit 1
     fi
 
     temp=$(sed -i "s/^.*rpc-whitelist.*/    \"rpc-whitelist\": \"127.0.0.1,192.168.*.*\",/g" $SETTINGSPATH/settings.json 2>&1)
     if [ $(echo $temp | grep -ic "sed:") -eq 1 ]; then
-        echo "[Error -18] Cannot edit settings file"
+        echo "[Error -310] Cannot edit settings file"
         uninstall_daemon
         exit 1
     fi
 
     temp=$(mkdir -p "$WTPATH" 2>&1)
     if [ $(echo $temp | grep -ic "Permission denied") -eq 1 ]; then
-        echo "[Error -19] Cannot create torrent watch folder"
+        echo "[Error -311] Cannot create torrent watch folder"
         uninstall_daemon
         exit 1
     fi
 
     temp=$(ln -s "$WTPATH/" "$SETTINGSPATH/myTorrentFolder" 2>&1)
     if [ $(echo $temp | grep -ic "ln:") -eq 1 ]; then
-        echo "[Error -20] Cannot create torrent watch folder"
+        echo "[Error -312] Cannot create torrent watch folder"
         uninstall_daemon
         exit 1
     fi
 
     temp=$(sed -i "s/^}/,\n    \"watch-dir\": \"$JSONWTPATH\",\n    \"watch-dir-enabled\": true\n}/g" $SETTINGSPATH/settings.json 2>&1)
     if [ $(echo $temp | grep -ic "sed:") -eq 1 ]; then
-        echo "[Error -21] Cannot edit settings file"
+        echo "[Error -313] Cannot edit settings file"
         uninstall_daemon
         exit 1
     fi
@@ -237,6 +244,11 @@ configure_daemon() {
     if [ $(echo $temp | grep -ic "transmission-daemon") -ne 0 ]; then
        temp=$(/sbin/chkconfig --del transmission-daemon) 
     fi
+    temp=$(/sbin/chkconfig --list 2>&1)
+    if [ $(echo $temp | grep -ic "transmissiond") -ne 0 ]; then
+       temp=$(/sbin/chkconfig --del transmissiond) 
+    fi
+
     temp=$(/sbin/chkconfig --add transmissiond 2>&1)
     temp=$(/sbin/chkconfig --levels 345 transmissiond on 2>&1)
     
@@ -254,25 +266,25 @@ uninstall_daemon() {
 
     temp=$([ -f $BINPATH/transmission-daemon ] && rm $BINPATH/transmission-daemon 2>&1)
     if [ $(echo $temp | grep -ic "rm:") -ne 0 ]; then
-        echo "[Error -22] Cannot delete transmission daemon"
+        echo "[Error -411] Cannot delete transmission daemon"
         exit 1
     fi        	
     
     temp=$([ -f $SCRIPTPATH/transmissiond ] && rm $SCRIPTPATH/transmissiond 2>&1)
     if [ $(echo $temp | grep -ic "rm:") -ne 0 ]; then
-        echo "[Error -23] Cannot delete transmission daemon script"
+        echo "[Error -412] Cannot delete transmission daemon script"
         exit 1
     fi        	
     
     temp=$([ -d $WEBPATH ] && rm -r $WEBPATH 2>&1)
     if [ $(echo $temp | grep -ic "rm:") -ne 0 ]; then
-        echo "[Error -24] Cannot delete transmission web folder"
+        echo "[Error -413] Cannot delete transmission web folder"
         exit 1
     fi        	
     
     temp=$([ -d $SETTINGSPATH ] && rm -r $SETTINGSPATH 2>&1)
     if [ $(echo $temp | grep -ic "rm:") -ne 0 ]; then
-        echo "[Error -25] Cannot delete transmission settings folder"
+        echo "[Error -414] Cannot delete transmission settings folder"
         exit 1
     fi        	
     
@@ -354,6 +366,6 @@ configure_daemon
 # Start transmission daemon
 start_daemon
 sleep 0.5
-
+    
 exit 0
 
